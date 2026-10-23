@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api, tg, hasTelegram, API_BASE } from './api.js';
 
-const BLOCK_ID = import.meta.env.VITE_ADSGRAM_BLOCK_ID || '';
+// Adsgram Reward block ID (code ထဲမှာ တိုက်ရိုက်သတ်မှတ်ထားသည် - Vercel env မလို)
+const BLOCK_ID = '55583';
 const AD_DEBUG = import.meta.env.VITE_ADSGRAM_DEBUG === 'true';
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -199,6 +200,24 @@ function BalanceCard({ user }) {
   );
 }
 
+function PayoutList({ limit }) {
+  const [payouts, setPayouts] = useState(null);
+  useEffect(() => {
+    api.payouts().then((r) => setPayouts(r.ok ? r.data.payouts : []));
+  }, []);
+  if (payouts === null) return <p className="muted">ခဏစောင့်ပါ…</p>;
+  if (payouts.length === 0) return <p className="muted">ငွေထုတ်ပြီးသူ မှတ်တမ်း မကြာမီ ပြသပါမည်။</p>;
+  return payouts.slice(0, limit || payouts.length).map((p) => (
+    <div className="line" key={p.id}>
+      <span>
+        {p.name} • {p.method}
+        {p.ref ? ` • ${p.ref}` : ''}
+      </span>
+      <b>{fmt(p.amount)} ကျပ်</b>
+    </div>
+  ));
+}
+
 function Home({ user, config, busy, onWatch, setTab }) {
   const opts = config.rewardOptions.join(' / ');
   return (
@@ -214,6 +233,10 @@ function Home({ user, config, busy, onWatch, setTab }) {
         <button className="btn" disabled={!!busy || user.adsLeft === 0} onClick={onWatch}>
           {busy === 'ad' ? 'ခဏစောင့်ပါ…' : `📺 ကြော်ငြာကြည့်မည် (+${opts} coin)`}
         </button>
+        <div className="muted small" style={{ marginTop: 8 }}>
+          📍 Rewarded video ad (Adsgram) — အပေါ်က ခလုတ်ကို သင်ကိုယ်တိုင် နှိပ်မှသာ ပေါ်ပါမည်။
+          အလိုအလျောက် မပေါ်ပါ။
+        </div>
         <div className="progress">
           <div style={{ width: `${(user.adsToday / config.maxAdsPerDay) * 100}%` }} />
         </div>
@@ -237,8 +260,23 @@ function Home({ user, config, busy, onWatch, setTab }) {
             ပြည့်လျှင် “ငွေထုတ်” tab မှ ထုတ်ယူနိုင်ပါသည်။
           </li>
         </ol>
+      </div>
+
+      <div className="card">
+        <h3>🧾 ငွေထုတ်ပြီးသူများ (သက်သေ)</h3>
+        <PayoutList limit={5} />
+        {config.proofUrl && (
+          <button
+            className="link"
+            onClick={() =>
+              tg?.openTelegramLink ? tg.openTelegramLink(config.proofUrl) : window.open(config.proofUrl)
+            }
+          >
+            📢 သက်သေ Channel တွင် အားလုံးကြည့်ရန် →
+          </button>
+        )}
         <button className="link" onClick={() => setTab('wallet')}>
-          ငွေထုတ်ပြီးသူများ သက်သေများ ကြည့်ရန် →
+          ငွေထုတ်ရန် →
         </button>
       </div>
     </>
@@ -313,11 +351,9 @@ function Wallet({ user, config, setUser, say }) {
   const [coins, setCoins] = useState(String(config.minWithdrawCoins));
   const [sending, setSending] = useState(false);
   const [history, setHistory] = useState([]);
-  const [payouts, setPayouts] = useState([]);
 
   const load = useCallback(() => {
     api.withdrawals().then((r) => r.ok && setHistory(r.data.items));
-    api.payouts().then((r) => r.ok && setPayouts(r.data.payouts));
   }, []);
   useEffect(load, [load]);
 
@@ -403,16 +439,7 @@ function Wallet({ user, config, setUser, say }) {
 
       <div className="card">
         <h3>🧾 ငွေထုတ်ပြီးသူများ (အများပြည်သူ သက်သေ)</h3>
-        {payouts.length === 0 && <p className="muted">မကြာမီ ပြသပါမည်။</p>}
-        {payouts.map((p) => (
-          <div className="line" key={p.id}>
-            <span>
-              {p.name} • {p.method}
-              {p.ref ? ` • ${p.ref}` : ''}
-            </span>
-            <b>{fmt(p.amount)} ကျပ်</b>
-          </div>
-        ))}
+        <PayoutList />
       </div>
     </>
   );
