@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api, tg, hasTelegram, API_BASE } from './api.js';
 
 // Adsgram Reward block ID
-const BLOCK_ID = '55583';
+const BLOCK_ID = '55640';
 const BUILD = 'b4';
 const AD_DEBUG = import.meta.env.VITE_ADSGRAM_DEBUG === 'true';
 
