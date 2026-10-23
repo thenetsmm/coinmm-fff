@@ -6,7 +6,7 @@ Telegram Mini App — Vite + React၊ မြန်မာဘာသာ UI၊ Adsgr
 1. GitHub တွင် repo အသစ် (ဥပမာ `adcoin-mm-frontend`) ဖွင့်ပြီး ဤ folder ထဲက file အားလုံး push လုပ်ပါ။
 2. https://vercel.com → **Add New → Project** → ဤ repo ကို import (Framework: Vite က အလိုအလျောက် ရွေးမည်)။
 3. **Environment Variables** ထည့်ပါ:
-   - `VITE_API_URL` = Render backend URL
+   - `VITE_API_URL` = Render backend URL (မထည့်လည်းရ — code ထဲတွင် default `https://coinmm.onrender.com` ထည့်ထားသည်။ URL ပြောင်းမှသာ ထည့်ပါ၊ **Type = Config**)
    - `VITE_ADSGRAM_BLOCK_ID` = Adsgram Block ID
    - `VITE_ADSGRAM_DEBUG` = `false`
 4. Deploy နှိပ်ပါ။ ရလာသော URL (`https://xxxx.vercel.app`) ကို
