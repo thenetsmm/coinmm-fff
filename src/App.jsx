@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { api, tg, hasTelegram } from './api.js';
+import { api, tg, hasTelegram, API_BASE } from './api.js';
 
 const BLOCK_ID = import.meta.env.VITE_ADSGRAM_BLOCK_ID || '';
 const AD_DEBUG = import.meta.env.VITE_ADSGRAM_DEBUG === 'true';
@@ -36,6 +36,7 @@ export default function App() {
   const [toast, setToast] = useState('');
   const [busy, setBusy] = useState('');
   const [fatal, setFatal] = useState('');
+  const [diag, setDiag] = useState('');
   const adRef = useRef(null);
   const toastTimer = useRef(null);
 
@@ -45,19 +46,38 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(''), 3500);
   }, []);
 
-  useEffect(() => {
+  const boot = useCallback(async () => {
+    setFatal('');
+    setDiag('');
     if (!hasTelegram) {
       setFatal('ဤ Mini App ကို Telegram bot ထဲမှသာ ဖွင့်ပါ။');
       return;
     }
-    api.me().then((r) => {
-      if (r.ok) {
-        setUser(r.data.user);
-        setConfig(r.data.config);
-      } else if (r.data?.error === 'banned') setFatal(ERR.banned);
-      else setFatal('ချိတ်ဆက်၍ မရပါ။ ခဏနေမှ ပြန်ဖွင့်ပါ။');
-    });
+    // Render Free server အိပ်နေလျှင် နိုးသည်အထိ ထပ်ကြိုးစားမည်
+    let r;
+    for (let i = 0; i < 6; i++) {
+      r = await api.me();
+      if (r.ok) break;
+      const retry = r.status === 0 || (r.status >= 502 && r.status <= 504);
+      if (!retry) break;
+      await sleep(4000);
+    }
+    if (r.ok) {
+      setUser(r.data.user);
+      setConfig(r.data.config);
+    } else if (r.data?.error === 'banned') {
+      setFatal(ERR.banned);
+    } else {
+      setFatal('ချိတ်ဆက်၍ မရပါ။ ခဏနေမှ ပြန်ကြိုးစားပါ။');
+      setDiag(
+        `status=${r.status} error=${r.data?.error || '-'} ${r.data?.reason || r.data?.detail || ''} | ${API_BASE}`
+      );
+    }
   }, []);
+
+  useEffect(() => {
+    boot();
+  }, [boot]);
 
   const getAd = () => {
     if (!adRef.current && window.Adsgram && BLOCK_ID) {
@@ -121,7 +141,18 @@ export default function App() {
     }
   }
 
-  if (fatal) return <div className="center">{fatal}</div>;
+  if (fatal)
+    return (
+      <div className="center" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 14 }}>
+        <div>{fatal}</div>
+        {diag && <div style={{ fontSize: 11, opacity: 0.6, wordBreak: 'break-all' }}>{diag}</div>}
+        {hasTelegram && fatal !== ERR.banned && (
+          <button className="btn" style={{ maxWidth: 220 }} onClick={boot}>
+            🔄 ပြန်ကြိုးစားမည်
+          </button>
+        )}
+      </div>
+    );
   if (!user || !config) return <div className="center">ခဏစောင့်ပါ…</div>;
 
   return (
